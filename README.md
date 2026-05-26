@@ -1,8 +1,8 @@
 # Selenium Practice
 
-A hands-on reference project covering the core Selenium WebDriver concepts in Python. Built to work as both a runnable demo and a copy-paste toolkit for real test automation work.
+A runnable showcase of Selenium WebDriver in Python, covering 14 core concepts from locator strategies to the Page Object Model. Each section is a self-contained function you can read, run, or pull from independently.
 
-**Target site:** [the-internet.herokuapp.com](https://the-internet.herokuapp.com) — purpose-built for Selenium practice, each page isolates one browser feature.
+**Target site:** [the-internet.herokuapp.com](https://the-internet.herokuapp.com) — every page on this site is designed to exercise one specific browser automation feature.
 
 ---
 
@@ -133,10 +133,17 @@ assert page.is_order_confirmed()
 
 ### Taking a screenshot on test failure
 
-Use the screenshot helper from section 12 in a pytest fixture so failures are automatically captured:
+Add both pieces to `conftest.py`. The hook runs first and attaches the result to the node; the fixture reads it after the test body finishes.
 
 ```python
+# conftest.py
 import pytest
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
 
 @pytest.fixture(autouse=True)
 def screenshot_on_failure(driver, request):

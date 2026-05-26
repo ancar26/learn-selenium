@@ -36,7 +36,7 @@ class LoginPage(BasePage):
         self.click(self._LOGIN_BUTTON)
 
     def get_flash_message(self) -> str:
-        return self.get_text(_FLASH_MESSAGE := self._FLASH_MESSAGE)
+        return self.get_text(self._FLASH_MESSAGE)
 
     def is_login_successful(self) -> bool:
         # The success message contains "You logged into a secure area"

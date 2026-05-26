@@ -26,7 +26,6 @@ Sections (in order):
     14. Page Object Model (delegates to pages/login_page.py)
 """
 
-import time
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -92,18 +91,16 @@ def demo_navigation(driver: webdriver.Chrome):
     print(f"Title    : {driver.title}")
     print(f"URL      : {driver.current_url}")
 
-    # Navigate to a sub-page.
     driver.get(f"{BASE_URL}/login")
-    print(f"After get: {driver.current_url}")
+    print(f"After get    : {driver.current_url}")
 
-    # Browser history navigation — same as clicking the browser arrows.
     driver.back()
-    print(f"After back  : {driver.current_url}")
+    print(f"After back   : {driver.current_url}")
 
     driver.forward()
     print(f"After forward: {driver.current_url}")
 
-    # Reload the page (equivalent to F5).
+    # refresh() is equivalent to F5 — retriggers the current page load.
     driver.refresh()
     print(f"After refresh: {driver.current_url}")
 
@@ -200,8 +197,8 @@ def demo_element_interactions(driver: webdriver.Chrome):
     username_input.send_keys("tomsmith")
     driver.find_element(By.ID, "password").send_keys("SuperSecretPassword!")
 
-    # send_keys(Keys.RETURN) submits the form without clicking the button —
-    # useful for testing keyboard accessibility.
+    # Keys.RETURN submits the form via keyboard — tests accessibility without
+    # relying on the submit button being clickable.
     driver.find_element(By.ID, "password").send_keys(Keys.RETURN)
 
     flash = driver.find_element(By.ID, "flash")
@@ -209,12 +206,10 @@ def demo_element_interactions(driver: webdriver.Chrome):
     print(f"is_displayed() : {flash.is_displayed()}")
     print(f"Tag name       : {flash.tag_name}")
 
-    # Checkboxes — navigate to a page with them
     driver.get(f"{BASE_URL}/checkboxes")
     checkboxes = driver.find_elements(By.CSS_SELECTOR, "input[type='checkbox']")
     for i, cb in enumerate(checkboxes):
         print(f"Checkbox {i}: is_selected={cb.is_selected()}, is_enabled={cb.is_enabled()}")
-    # Toggle the first checkbox
     checkboxes[0].click()
     print(f"Checkbox 0 after click: is_selected={checkboxes[0].is_selected()}")
 
@@ -451,15 +446,17 @@ def demo_action_chains(driver: webdriver.Chrome):
     )
     print(f"Hover caption: '{caption.text.strip()}'")
 
-    # -- Double-click --
-    driver.get(f"{BASE_URL}/")
-    # (no double-click demo on this site without JS; shown as pattern)
-    # actions.double_click(element).perform()
-    print("Double-click pattern: ActionChains(driver).double_click(element).perform()")
-
     # -- Right-click (context click) --
-    # actions.context_click(element).perform()
-    print("Right-click pattern : ActionChains(driver).context_click(element).perform()")
+    # The context_menu page responds visually to a right-click on the box.
+    driver.get(f"{BASE_URL}/context_menu")
+    box = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "hot-spot"))
+    )
+    ActionChains(driver).context_click(box).perform()
+    # Dismiss the JS alert that appears after right-clicking
+    WebDriverWait(driver, 5).until(EC.alert_is_present())
+    driver.switch_to.alert.accept()
+    print("Right-click on context menu box confirmed (alert dismissed).")
 
     # -- Drag and Drop --
     driver.get(f"{BASE_URL}/drag_and_drop")
@@ -472,11 +469,12 @@ def demo_action_chains(driver: webdriver.Chrome):
     print(f"Column A before drag: '{header_before}'")
 
     ActionChains(driver).drag_and_drop(source, target).perform()
-    # The site's drag-and-drop uses HTML5 events which some browsers handle
-    # differently. If the header text doesn't swap, see the JS workaround in
-    # demo_javascript_execution() below.
-    time.sleep(0.5)
-    header_after = driver.find_element(By.ID, "column-a").find_element(By.TAG_NAME, "header").text
+
+    # Wait for the DOM to reflect the swap rather than sleeping.
+    WebDriverWait(driver, 5).until(
+        lambda d: d.find_element(By.CSS_SELECTOR, "#column-a header").text != header_before
+    )
+    header_after = driver.find_element(By.CSS_SELECTOR, "#column-a header").text
     print(f"Column A after  drag: '{header_after}'")
 
 
@@ -499,11 +497,9 @@ def demo_javascript_execution(driver: webdriver.Chrome):
 
     driver.get(f"{BASE_URL}/login")
 
-    # Scroll the page to the bottom.
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     print("Scrolled to page bottom via JS.")
 
-    # Read a DOM property not exposed by WebElement API.
     username_input = driver.find_element(By.ID, "username")
     placeholder = driver.execute_script(
         "return arguments[0].getAttribute('placeholder');", username_input
@@ -516,11 +512,9 @@ def demo_javascript_execution(driver: webdriver.Chrome):
     )
     print("Highlighted username input with JS (red border).")
 
-    # Return a value from JS — execute_script returns the expression's value.
     page_title = driver.execute_script("return document.title;")
     print(f"document.title via JS: '{page_title}'")
 
-    # Scroll an element into view before interacting with it.
     driver.execute_script("arguments[0].scrollIntoView(true);", username_input)
     print("Scrolled element into view via JS.")
 
@@ -573,11 +567,9 @@ def demo_cookies(driver: webdriver.Chrome):
 
     driver.get(BASE_URL)
 
-    # Read all cookies
     cookies = driver.get_cookies()
     print(f"Cookies before login: {[c['name'] for c in cookies]}")
 
-    # Log in so the site sets a session cookie
     driver.get(f"{BASE_URL}/login")
     driver.find_element(By.ID, "username").send_keys("tomsmith")
     driver.find_element(By.ID, "password").send_keys("SuperSecretPassword!")
@@ -586,7 +578,6 @@ def demo_cookies(driver: webdriver.Chrome):
     cookies_after = driver.get_cookies()
     print(f"Cookies after login : {[c['name'] for c in cookies_after]}")
 
-    # Read a specific cookie by name
     session_cookie = driver.get_cookie("rack.session")
     if session_cookie:
         print(f"Session cookie domain: '{session_cookie.get('domain')}'")
@@ -595,11 +586,10 @@ def demo_cookies(driver: webdriver.Chrome):
     driver.add_cookie({"name": "my_test_flag", "value": "enabled"})
     print(f"Added cookie value  : '{driver.get_cookie('my_test_flag')['value']}'")
 
-    # Delete one cookie
     driver.delete_cookie("my_test_flag")
     print(f"After delete        : {driver.get_cookie('my_test_flag')}")
 
-    # Delete all cookies (e.g., between test cases)
+    # delete_all_cookies() is the standard teardown step between test cases.
     driver.delete_all_cookies()
     print(f"After delete_all    : {driver.get_cookies()}")
 
@@ -642,17 +632,10 @@ def demo_page_object_model(driver: webdriver.Chrome):
 # ============================================================
 
 def run_all():
-    """
-    Entry point for the full demo.
-
-    Each section function receives the driver, runs its showcase,
-    and prints what it did. The driver is quit in the finally block
-    so it always closes, even if a section raises an exception.
-    """
     print("Starting Selenium Practice Demo")
     print(f"Target site: {BASE_URL}")
 
-    # Set headless=False to watch the browser; True for silent background run.
+    # headless=True to run silently (useful in CI); False to watch the browser.
     driver = create_driver(headless=False)
 
     sections = [

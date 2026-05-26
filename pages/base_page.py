@@ -9,7 +9,6 @@ focused on *what* the page does rather than *how* to wait for it.
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 
 
 DEFAULT_TIMEOUT = 10  # seconds; adjust globally here rather than per page
